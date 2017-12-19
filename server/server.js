@@ -34,7 +34,7 @@ io.sockets.emit('close');
 
 
 // Initialize arduino communication
-const Arduino = require('./arduino.js');
+const Arduino = require('./private/arduino.js');
 const arduino = new Arduino('/dev/ttyACM0');
 
 arduino.registerEvents(function(sensor, value)
