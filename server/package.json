@@ -1,0 +1,16 @@
+{
+    "name": "pyramid-lock-server",
+    "version": "1.0.0",
+    "description": "Server for the Pyramid Lock.",
+    "author": "Bass Jansson",
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/bassjansson/pyramidlock"
+    },
+    "dependencies": {
+        "express": "^4.16.2",
+        "socket.io": "^2.0.4",
+        "serialport": "^6.0.4"
+    }
+}
