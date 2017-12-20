@@ -23,7 +23,7 @@ const arduino = new Arduino('/dev/cu.usbmodem14241');
 //==================================//
 
 // Serve the public directory
-app.use(express.static('public'));
+app.use(express.static('source/client'));
 
 // Start listening on the server port
 server.listen(port, () =>
