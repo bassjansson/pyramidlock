@@ -13,7 +13,7 @@ const port = process.env.PORT || 3000;
 //========== Arduino Objects ==========//
 //=====================================//
 
-const Arduino = require('./private/arduino.js');
+const Arduino = require('./arduino.js');
 const arduino = new Arduino('/dev/cu.usbmodem14241');
 //const arduino = new Arduino('/dev/ttyACM0');
 

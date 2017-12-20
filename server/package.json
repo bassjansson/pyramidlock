@@ -12,5 +12,9 @@
         "express": "^4.16.2",
         "socket.io": "^2.0.4",
         "serialport": "^6.0.4"
+    },
+    "main": "private/server.js",
+    "scripts": {
+        "start": "node private/server.js"
     }
 }
