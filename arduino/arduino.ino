@@ -16,7 +16,8 @@
 #define PIXELS_TYPE_FLAGS  (NEO_GRB + NEO_KHZ800)
 
 // Control defines
-#define CONTROL_PUSH_FRONT  200
+#define CONTROL_COLOR_WIPE  200
+#define CONTROL_PUSH_FRONT  201
 
 
 // Data variables
@@ -80,8 +81,18 @@ void pushFront(uint8_t r, uint8_t g, uint8_t b)
 // On data received callback
 void onDataReceived(int data[DATA_SIZE])
 {
-    if (data[0] == CONTROL_PUSH_FRONT)
-        pushFront(data[1], data[2], data[3]);
+    switch (data[0])
+    {
+        case CONTROL_COLOR_WIPE:
+            colorWipe(data[1], data[2], data[3]);
+            break;
+
+        case CONTROL_PUSH_FRONT:
+            pushFront(data[1], data[2], data[3]);
+            break;
+
+        default: break;
+    }
 }
 
 // Read serial data

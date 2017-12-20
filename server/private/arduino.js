@@ -1,9 +1,18 @@
-// Private shared constants
+//==============================================//
+//========== Private Shared Constants ==========//
+//==============================================//
+
 const SerialPort = require('serialport');
 const BAUD_RATE = 9600;
-const SEPARATOR = ' ';
+const DATA_DELIMITER = ',';
+const DATA_ENDLINE = '\n';
+const OPEN_TIMEOUT = 2000;
 
-// Constructor
+
+//=================================//
+//========== Constructor ==========//
+//=================================//
+
 function Arduino(port)
 {
     console.log('Initializing arduino serial communication on port ' + port + '.');
@@ -18,14 +27,6 @@ function Arduino(port)
 
     this.parser = this.serial.pipe(new SerialPort.parsers.Readline());
 
-    this.open();
-}
-
-// Register events method
-Arduino.prototype.registerEvents = function(onSensorValue)
-{
-    console.log('Registering events of arduino serial port ' + this.port + '.');
-
     this.serial.on('open', () =>
     {
         console.log('Serial port ' + this.port + ' opened!');
@@ -38,6 +39,54 @@ Arduino.prototype.registerEvents = function(onSensorValue)
         this.open();
     });
 
+    this.open();
+}
+
+
+//==========================//
+//========== Open ==========//
+//==========================//
+
+Arduino.prototype.open = function()
+{
+    console.log('Trying to open arduino serial port ' + this.port + '.');
+
+    this.serial.open((error) =>
+    {
+        if (error) setTimeout(() =>
+        {
+            this.open();
+        }, OPEN_TIMEOUT);
+    });
+};
+
+
+//=======================================//
+//========== Send Control Data ==========//
+//=======================================//
+
+Arduino.prototype.sendControlData = function(control, data)
+{
+    var dataString = control.toString();
+
+    data.forEach(function(value)
+    {
+        dataString += DATA_DELIMITER + value.toString();
+    });
+
+    dataString += DATA_ENDLINE;
+
+    console.log('Sending arduino control data on serial port ' + this.port + ' as string: ', dataString);
+
+    this.serial.write(dataString);
+};
+
+
+/*
+Arduino.prototype.registerEvents = function(onSensorValue)
+{
+    console.log('Registering events of arduino serial port ' + this.port + '.');
+
     this.parser.on('data', (data) =>
     {
         //console.log('Serial port ' + this.port + ' received data: ', data);
@@ -49,20 +98,11 @@ Arduino.prototype.registerEvents = function(onSensorValue)
         onSensorValue(sensor, value);
     });
 };
+*/
 
-// Open method
-Arduino.prototype.open = function()
-{
-    console.log('Trying to open arduino serial port ' + this.port + '.');
 
-    this.serial.open((error) =>
-    {
-        if (error) setTimeout(() =>
-        {
-            this.open();
-        }, 2000);
-    });
-}
+//==================================//
+//========== Export Class ==========//
+//==================================//
 
-// Export class
 module.exports = Arduino;

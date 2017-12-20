@@ -1,16 +1,28 @@
+// Initialize socket.io
+const socket = io();
+
 // Hue slider handling
 var slider = document.getElementById("hue-slider");
 
-setBackgroundColor(hslToRgb(0.5, 1.0, 0.5));
+handleRgb(hslToRgb(0.5, 1.0, 0.5));
 
 slider.oninput = function()
 {
-    setBackgroundColor(hslToRgb(this.value / 1000.0, 1.0, 0.5));
+    handleRgb(hslToRgb(this.value / 1000.0, 1.0, 0.5));
 };
 
-function setBackgroundColor(rgb)
+function handleRgb(rgb)
 {
     document.body.style.backgroundColor = 'rgb(' + rgb.join(',') + ')';
+
+    var controlData = {
+        control: 200, // Color wipe
+        data: rgb
+    };
+
+    console.log('Sending arduino control data: ', controlData);
+
+    socket.emit('control-data', controlData);
 }
 
 function hslToRgb(h, s, l)
@@ -44,9 +56,6 @@ function hslToRgb(h, s, l)
 }
 
 /*
-// Initialize socket.io
-const socket = io();
-
 // Socket.io listeners
 socket.on('open', () =>
 {
@@ -60,8 +69,6 @@ socket.on('close', () =>
 
 socket.on('data', (data) =>
 {
-    // To send message via socket.io, below are equivalent
-    //socket.send('Hello!');
-    //socket.emit('message', 'Hello!');
+
 });
 */

@@ -1,9 +1,26 @@
-// Initialize server constants
+//====================================//
+//========== Server Objects ==========//
+//====================================//
+
 const express = require('express');
 const app = express();
 const server = require('http').createServer(app);
 const io = require('socket.io')(server);
 const port = process.env.PORT || 3000;
+
+
+//=====================================//
+//========== Arduino Objects ==========//
+//=====================================//
+
+const Arduino = require('./private/arduino.js');
+const arduino = new Arduino('/dev/cu.usbmodem14241');
+//const arduino = new Arduino('/dev/ttyACM0');
+
+
+//==================================//
+//========== Server Setup ==========//
+//==================================//
 
 // Serve the public directory
 app.use(express.static('public'));
@@ -17,29 +34,18 @@ server.listen(port, () =>
 // Connection established with client
 io.on('connection', (socket) =>
 {
-    console.log('A user connected!');
+    console.log('A client connected!');
 
-    /*
-    socket.on('message', (msg) =>
+    socket.on('control-data', (controlData) =>
     {
-        arduino.write(msg);
-    }
-    */
+        console.log('Arduino control data received: ', controlData);
+
+        arduino.sendControlData(controlData.control, controlData.data);
+    });
 });
 
 /*
 io.sockets.emit('open');
 io.sockets.emit('data', data);
 io.sockets.emit('close');
-
-
-// Initialize arduino communication
-const Arduino = require('./private/arduino.js');
-const arduino = new Arduino('/dev/ttyACM0');
-
-arduino.registerEvents(function(sensor, value)
-{
-    document.getElementById('messages').innerHTML +=
-        `Sensor "${sensor}" changed to value "${value}". <br>`;
-});
 */
