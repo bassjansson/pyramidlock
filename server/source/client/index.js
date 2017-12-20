@@ -1,6 +1,20 @@
 // Initialize socket.io
 const socket = io();
 
+// Sensor data list
+var sensorDataList = document.getElementById("sensor-data-list");
+
+// Socket.io listeners
+socket.on('sensor-data', (sensorData) =>
+{
+    console.log('Received arduino sensor data: ', sensorData);
+
+    sensorDataList.innerHTML =
+        sensorData.sensor + " - " +
+        sensorData.data.toString() + "<br>" +
+        sensorDataList.innerHTML;
+});
+
 // Hue slider handling
 var slider = document.getElementById("hue-slider");
 
@@ -8,7 +22,7 @@ handleRgb(hslToRgb(0.5, 1.0, 0.5));
 
 slider.oninput = function()
 {
-    handleRgb(hslToRgb(this.value / 1000.0, 1.0, 0.5));
+    handleRgb(hslToRgb(this.value / 100.0, 1.0, 0.5));
 };
 
 function handleRgb(rgb)
@@ -54,21 +68,3 @@ function hslToRgb(h, s, l)
 
     return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
 }
-
-/*
-// Socket.io listeners
-socket.on('open', () =>
-{
-
-});
-
-socket.on('close', () =>
-{
-
-});
-
-socket.on('data', (data) =>
-{
-
-});
-*/

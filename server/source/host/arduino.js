@@ -65,11 +65,11 @@ Arduino.prototype.open = function()
 //========== Send Control Data ==========//
 //=======================================//
 
-Arduino.prototype.sendControlData = function(control, data)
+Arduino.prototype.sendControlData = function(controlData)
 {
-    var dataString = control.toString();
+    var dataString = controlData.control.toString();
 
-    data.forEach(function(value)
+    controlData.data.forEach((value) =>
     {
         dataString += DATA_DELIMITER + value.toString();
     });
@@ -82,23 +82,31 @@ Arduino.prototype.sendControlData = function(control, data)
 };
 
 
-/*
-Arduino.prototype.registerEvents = function(onSensorValue)
+//=========================================//
+//========== Receive Sensor Data ==========//
+//=========================================//
+
+Arduino.prototype.receiveSensorData = function(onSensorData)
 {
-    console.log('Registering events of arduino serial port ' + this.port + '.');
-
-    this.parser.on('data', (data) =>
+    this.parser.on('data', (dataString) =>
     {
-        //console.log('Serial port ' + this.port + ' received data: ', data);
+        console.log('Received arduino sensor data on serial port ' + this.port + ' as string: ', dataString);
 
-        var stringArray = data.split(SEPARATOR);
-        var sensor = parseInt(stringArray[0]);
-        var value = parseFloat(stringArray[1]);
+        var stringArray = dataString.split(DATA_DELIMITER);
 
-        onSensorValue(sensor, value);
+        var sensorData = {
+            sensor: parseInt(stringArray[0]),
+            data: []
+        }
+
+        stringArray.slice(1, stringArray.length).forEach((value) =>
+        {
+            sensorData.data.push(parseInt(value));
+        });
+
+        onSensorData(sensorData);
     });
 };
-*/
 
 
 //==================================//

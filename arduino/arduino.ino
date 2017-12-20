@@ -4,6 +4,7 @@
     #include <avr/power.h>
 #endif
 
+
 // Data defines
 #define DATA_DELIMITER  ','
 #define DATA_ENDLINE    '\n'
@@ -51,7 +52,7 @@ void loop()
     readSerialData();
 
     // Delay a little bit for stability
-    delay(10);
+    delay(20);
 }
 
 
@@ -78,6 +79,18 @@ void pushFront(uint8_t r, uint8_t g, uint8_t b)
     neoPixels.show();
 }
 
+
+// Send data
+void sendData(int data[], int size)
+{
+    Serial.print(data[0]);
+
+    for (int i = 1; i < size; ++i)
+        Serial.print(DATA_DELIMITER + String(data[i]));
+
+    Serial.print(DATA_ENDLINE);
+}
+
 // On data received callback
 void onDataReceived(int data[DATA_SIZE])
 {
@@ -93,7 +106,12 @@ void onDataReceived(int data[DATA_SIZE])
 
         default: break;
     }
+
+    // TODO: For testing
+    //delay(20);
+    //sendData(data, DATA_SIZE);
 }
+
 
 // Read serial data
 void readSerialData()

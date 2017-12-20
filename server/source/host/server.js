@@ -38,14 +38,20 @@ io.on('connection', (socket) =>
 
     socket.on('control-data', (controlData) =>
     {
-        console.log('Arduino control data received: ', controlData);
+        console.log('Received arduino control data: ', controlData);
 
-        arduino.sendControlData(controlData.control, controlData.data);
+        arduino.sendControlData(controlData);
     });
 });
 
-/*
-io.sockets.emit('open');
-io.sockets.emit('data', data);
-io.sockets.emit('close');
-*/
+
+//===================================//
+//========== Arduino Setup ==========//
+//===================================//
+
+arduino.receiveSensorData((sensorData) =>
+{
+    console.log('Sending arduino sensor data: ', sensorData);
+
+    io.sockets.emit('sensor-data', sensorData);
+});
