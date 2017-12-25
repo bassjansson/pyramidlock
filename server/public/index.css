@@ -1,13 +1,14 @@
 html {
     text-align: center;
     color: #4C4C4C;
+    background-color: #172938;
 }
 
 body {
     margin-top: 10%;
 }
 
-#slidecontainer {
+#sliders-container {
     width: 80%;
     margin: auto;
 }

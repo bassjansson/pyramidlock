@@ -8,17 +8,18 @@
 // Data defines
 #define DATA_DELIMITER  ','
 #define DATA_ENDLINE    '\n'
-#define DATA_SIZE        4 // Control Red Green Blue
-
-// Pixel defines
-#define PIXELS_COUNT       86 // 172
-#define PIXELS_DATA_PIN    6
-#define PIXELS_DIMINISH    10 // Inverted brightness
-#define PIXELS_TYPE_FLAGS  (NEO_GRB + NEO_KHZ800)
+#define DATA_SIZE        4 // [Control, Red, Green, Blue]
 
 // Control defines
 #define CONTROL_COLOR_WIPE  200
 #define CONTROL_PUSH_FRONT  201
+#define CONTROL_RAINBOW     202
+
+// Pixel defines
+#define PIXELS_COUNT       172 // 86
+#define PIXELS_DATA_PIN    6
+#define PIXELS_DIMINISH    4 // Inverted brightness
+#define PIXELS_TYPE_FLAGS  (NEO_GRB + NEO_KHZ800)
 
 
 // Data variables
@@ -28,6 +29,10 @@ String dataString = "";
 
 // Pixel variables
 Adafruit_NeoPixel neoPixels = Adafruit_NeoPixel(PIXELS_COUNT, PIXELS_DATA_PIN, PIXELS_TYPE_FLAGS);
+
+// Rainbow variables
+float phaseFreq = 0.023;
+float hueFreq = 0.003;
 
 
 // Setup
@@ -51,8 +56,11 @@ void loop()
     // Read serial data
     readSerialData();
 
+    // Rainbow
+    rainbow();
+
     // Delay a little bit for stability
-    delay(20);
+    delay(30);
 }
 
 
@@ -79,6 +87,46 @@ void pushFront(uint8_t r, uint8_t g, uint8_t b)
     neoPixels.show();
 }
 
+// Input a hue (0 to 255) to get a color value
+uint32_t hueToColor(uint8_t hue)
+{
+    uint8_t d = PIXELS_DIMINISH;
+
+    if (hue < 85)
+    {
+        return neoPixels.Color((255 - hue * 3) / d, 0, hue * 3 / d);
+    }
+
+    if (hue < 170)
+    {
+        hue -= 85;
+        return neoPixels.Color(0, hue * 3 / d, (255 - hue * 3) / d);
+    }
+
+    hue -= 170;
+    return neoPixels.Color(hue * 3 / d, (255 - hue * 3) / d, 0);
+}
+
+// Display rainbow with a phase and hue shifting frequency
+void rainbow()
+{
+    if (phaseFreq < 0.0 || hueFreq < 0.0)
+        return;
+
+    float seconds = millis() / 1000.0;
+    float phase = fmod(seconds * phaseFreq, 1.0);
+    uint8_t centerHue = uint8_t(seconds * hueFreq * 256.0) % 256;
+
+    for (uint16_t i = 0; i < neoPixels.numPixels(); ++i)
+    {
+        uint8_t pos = sin(((float)i / neoPixels.numPixels() + phase) * 2.0 * PI) * 32.0;
+        uint8_t hue = (pos + centerHue) % 256;
+        neoPixels.setPixelColor(i, hueToColor(hue));
+    }
+
+    neoPixels.show();
+}
+
 
 // Send data
 void sendData(int data[], int size)
@@ -94,6 +142,8 @@ void sendData(int data[], int size)
 // On data received callback
 void onDataReceived(int data[DATA_SIZE])
 {
+    phaseFreq = hueFreq = -1.0;
+
     switch (data[0])
     {
         case CONTROL_COLOR_WIPE:
@@ -104,6 +154,11 @@ void onDataReceived(int data[DATA_SIZE])
             pushFront(data[1], data[2], data[3]);
             break;
 
+        case CONTROL_RAINBOW:
+            phaseFreq = data[1] / 1000.0;
+            hueFreq = data[2] / 1000.0;
+            break;
+
         default: break;
     }
 
@@ -111,7 +166,6 @@ void onDataReceived(int data[DATA_SIZE])
     //delay(20);
     //sendData(data, DATA_SIZE);
 }
-
 
 // Read serial data
 void readSerialData()

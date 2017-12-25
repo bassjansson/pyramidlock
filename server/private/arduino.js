@@ -76,7 +76,7 @@ Arduino.prototype.sendControlData = function(controlData)
 
     dataString += DATA_ENDLINE;
 
-    console.log('Sending arduino control data on serial port ' + this.port + ' as string: ', dataString);
+    //console.log('Sending arduino control data on serial port ' + this.port + ' as string: ', dataString);
 
     this.serial.write(dataString);
 };
@@ -90,7 +90,7 @@ Arduino.prototype.receiveSensorData = function(onSensorData)
 {
     this.parser.on('data', (dataString) =>
     {
-        console.log('Received arduino sensor data on serial port ' + this.port + ' as string: ', dataString);
+        //console.log('Received arduino sensor data on serial port ' + this.port + ' as string: ', dataString);
 
         var stringArray = dataString.split(DATA_DELIMITER);
 

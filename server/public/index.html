@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+
+    <head>
+        <!-- Meta Data -->
+        <meta charset="UTF-8">
+
+        <!-- Title -->
+        <title>Pyramid Lock</title>
+
+        <!-- Style Sheets -->
+        <link rel="stylesheet" href="index.css">
+    </head>
+
+    <body>
+        <!-- Content -->
+        <div>
+            <h1>LED Strip Control</h1>
+            <div id="sliders-container">
+                <h2>Phase Frequency</h2>
+                <input id="phase-freq-slider" type="range" min="0" max="1000" value="500" class="slider">
+                <h2>Hue Shift Frequency</h2>
+                <input id="hue-freq-slider" type="range" min="0" max="1000" value="500" class="slider">
+            </div>
+        </div>
+
+        <div hidden>
+            <h2>Sensor Data<h2>
+            <ul id="sensor-data-list"><ul>
+        </div>
+
+        <!-- Libraries -->
+        <script src="/socket.io/socket.io.js"></script>
+
+        <!-- Scripts -->
+        <script src="hsl.js"></script>
+        <script src="index.js"></script>
+    </body>
+</html>

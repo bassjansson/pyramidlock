@@ -9,7 +9,7 @@
         "url": "https://github.com/bassjansson/pyramidlock"
     },
     "scripts": {
-        "start": "node source/host/server.js"
+        "start": "node private/server.js"
     },
     "dependencies": {
         "express": "^4.16.2",
