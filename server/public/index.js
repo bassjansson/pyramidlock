@@ -40,7 +40,13 @@ hueFreqSlider.oninput = function()
 // Radio button handling
 function onControlChange(control)
 {
-    socket.emit('led-control', control);
+    // Reset LEDs first
+    socket.emit('led-control', 0);
+
+    setTimeout(() =>
+    {
+        socket.emit('led-control', control);
+    }, 100);
 }
 
 // Send default values
