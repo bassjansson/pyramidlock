@@ -13,7 +13,10 @@
     },
     "dependencies": {
         "express": "^4.16.2",
+        "lame": "^1.2.4",
+        "serialport": "^6.0.4",
         "socket.io": "^2.0.4",
-        "serialport": "^6.0.4"
+        "speaker": "^0.4.0",
+        "youtube-audio-stream": "0.0.50"
     }
 }
