@@ -37,5 +37,13 @@ hueFreqSlider.oninput = function()
     socket.emit('hue-freq', hueFreq);
 };
 
+// Radio button handling
+function onControlChange(control)
+{
+    socket.emit('led-control', control);
+}
+
+// Send default values
+socket.emit('led-control', 202);
 socket.emit('phase-freq', 100.0);
 socket.emit('hue-freq', 100.0);

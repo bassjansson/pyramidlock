@@ -65,6 +65,15 @@ io.on('connection', (socket) =>
 
         arduino.sendControlData(controlData);
     });
+
+    socket.on('led-control', (control) =>
+    {
+        console.log('Received LED control: ', control);
+
+        controlData.control = control;
+
+        arduino.sendControlData(controlData);
+    });
 });
 
 
