@@ -1,4 +1,8 @@
-// Includes
+// Include libraries
+#include <SPI.h>
+#include <Wire.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_LSM9DS0.h>
 #include <Adafruit_NeoPixel.h>
 #ifdef __AVR__
     #include <avr/power.h>
@@ -18,7 +22,7 @@
 // Pixel defines
 #define PIXELS_COUNT       172 // 86
 #define PIXELS_DATA_PIN    6
-#define PIXELS_DIMINISH    4 // Inverted brightness
+#define PIXELS_DIMINISH    2 // Inverted brightness
 #define PIXELS_TYPE_FLAGS  (NEO_GRB + NEO_KHZ800)
 
 
@@ -34,12 +38,41 @@ Adafruit_NeoPixel neoPixels = Adafruit_NeoPixel(PIXELS_COUNT, PIXELS_DATA_PIN, P
 float phaseFreq = 0.023;
 float hueFreq = 0.003;
 
+// Assign a unique base ID for this sensor
+Adafruit_LSM9DS0 lsm = Adafruit_LSM9DS0(1000);  // Use I2C, ID #1000
+
+// Sensor events
+sensors_event_t accel, mag, gyro, temp;
+
+// Time
+unsigned long previousMillis = 0;
+
+// Gyro
+float gyroX = 0.0;
+float gyroY = 0.0;
+float gyroZ = 0.0;
+float filter = 0.6;
+
+// Orientation
+float XX = 0.0;
+float YY = 0.0;
+float ZZ = 0.0;
+
+// Control
+int control = 200;
+
 
 // Setup
 void setup()
 {
     // Initialize serial communication
     Serial.begin(9600);
+
+    // Initialize sensor
+    initializeSensor();
+
+    // Set time
+    previousMillis = millis();
 
     // Initialize data values
     for (int i = 0; i < DATA_SIZE; ++i)
@@ -56,11 +89,35 @@ void loop()
     // Read serial data
     readSerialData();
 
-    // Rainbow
-    rainbow();
+    // Read sensor
+    readSensor();
+
+    // Control LED strip
+    uint8_t rr = cos(XX / 360.0 * 4.0 * PI) * -127.0 + 127.0;
+    uint8_t gg = cos(YY / 360.0 * 4.0 * PI) * -127.0 + 127.0;
+    uint8_t bb = cos(ZZ / 360.0 * 4.0 * PI) * -127.0 + 127.0;
+
+    switch (control)
+    {
+        case CONTROL_COLOR_WIPE:
+            colorWipe(rr, gg, bb);
+            break;
+
+        case CONTROL_PUSH_FRONT:
+            pushFront(rr, gg, bb);
+            break;
+
+        case CONTROL_RAINBOW:
+            rainbow();
+            break;
+
+        default:
+            colorWipe(0, 0, 0);
+            break;
+    }
 
     // Delay a little bit for stability
-    delay(30);
+    delay(50);
 }
 
 
@@ -128,6 +185,59 @@ void rainbow()
 }
 
 
+// Initialize sensor
+void initializeSensor()
+{
+    // Begin the sensor
+    if(!lsm.begin())
+    {
+        //Serial.print(F("Ooops, no LSM9DS0 detected ... Check your wiring or I2C ADDR!"));
+        while (1);
+    }
+
+    //Serial.println(F("Yeeaah, found LSM9DS0 9DOF Sensor!"));
+
+    // 1.) Set the accelerometer range
+    lsm.setupAccel(lsm.LSM9DS0_ACCELRANGE_2G);
+    //lsm.setupAccel(lsm.LSM9DS0_ACCELRANGE_4G);
+    //lsm.setupAccel(lsm.LSM9DS0_ACCELRANGE_6G);
+    //lsm.setupAccel(lsm.LSM9DS0_ACCELRANGE_8G);
+    //lsm.setupAccel(lsm.LSM9DS0_ACCELRANGE_16G);
+
+    // 2.) Set the magnetometer sensitivity
+    lsm.setupMag(lsm.LSM9DS0_MAGGAIN_2GAUSS);
+    //lsm.setupMag(lsm.LSM9DS0_MAGGAIN_4GAUSS);
+    //lsm.setupMag(lsm.LSM9DS0_MAGGAIN_8GAUSS);
+    //lsm.setupMag(lsm.LSM9DS0_MAGGAIN_12GAUSS);
+
+    // 3.) Setup the gyroscope
+    lsm.setupGyro(lsm.LSM9DS0_GYROSCALE_245DPS);
+    //lsm.setupGyro(lsm.LSM9DS0_GYROSCALE_500DPS);
+    //lsm.setupGyro(lsm.LSM9DS0_GYROSCALE_2000DPS);
+}
+
+// Read sensor
+void readSensor()
+{
+    // Get sensor events
+    lsm.getEvent(&accel, &mag, &gyro, &temp);
+
+    // Set time
+    float diffSeconds = (millis() - previousMillis) / 1000.0;
+    previousMillis = millis();
+
+    // Update gyro
+    gyroX = filter * gyroX + (1.0 - filter) * gyro.gyro.x;
+    gyroY = filter * gyroY + (1.0 - filter) * gyro.gyro.y;
+    gyroZ = filter * gyroZ + (1.0 - filter) * gyro.gyro.z;
+
+    // Update orientation
+    XX = fmod(XX + 360.0 + (gyroX + 0.4) * diffSeconds, 360.0);
+    YY = fmod(YY + 360.0 + (gyroY - 2.5) * diffSeconds, 360.0);
+    ZZ = fmod(ZZ + 360.0 + (gyroZ + 5.8) * diffSeconds, 360.0);
+}
+
+
 // Send data
 void sendData(int data[], int size)
 {
@@ -143,15 +253,14 @@ void sendData(int data[], int size)
 void onDataReceived(int data[DATA_SIZE])
 {
     phaseFreq = hueFreq = -1.0;
+    control = data[0];
 
     switch (data[0])
     {
         case CONTROL_COLOR_WIPE:
-            colorWipe(data[1], data[2], data[3]);
             break;
 
         case CONTROL_PUSH_FRONT:
-            pushFront(data[1], data[2], data[3]);
             break;
 
         case CONTROL_RAINBOW:
