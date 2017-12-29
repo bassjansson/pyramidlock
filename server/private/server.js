@@ -14,8 +14,8 @@ const port = process.env.PORT || 3000;
 //=====================================//
 
 const Arduino = require('./arduino.js');
-const arduino = new Arduino('/dev/cu.usbmodem14241');
-//const arduino = new Arduino('/dev/ttyACM0');
+//const arduino = new Arduino('/dev/cu.usbmodem14241');
+const arduino = new Arduino('/dev/ttyACM0');
 
 
 //=========================//
@@ -87,3 +87,18 @@ arduino.receiveSensorData((sensorData) =>
 
     io.sockets.emit('sensor-data', sensorData);
 });
+
+
+//==========================================//
+//========== Youtube Audio Stream ==========//
+//==========================================//
+
+const stream = require('youtube-audio-stream');
+const url = 'https://www.youtube.com/watch?v=2HzTdmeSgjU';
+const Decoder = require('lame').Decoder;
+const Speaker = require('speaker');
+
+var decoder = Decoder();
+var speaker = new Speaker();
+
+stream(url).pipe(decoder).pipe(speaker);
