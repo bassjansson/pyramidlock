@@ -12,11 +12,11 @@
         "start": "node private/server.js"
     },
     "dependencies": {
-        "express": "^4.16.2",
+        "express": "^4.16.3",
         "lame": "^1.2.4",
-        "serialport": "^6.0.4",
-        "socket.io": "^2.0.4",
-        "speaker": "^0.4.0",
+        "serialport": "^6.2.0",
+        "socket.io": "^2.1.1",
+        "speaker": "^0.4.1",
         "youtube-audio-stream": "0.0.50"
     }
 }
