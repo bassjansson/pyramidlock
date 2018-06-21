@@ -2,14 +2,15 @@
     "name": "pyramid-lock-server",
     "version": "1.0.0",
     "description": "Server for the Pyramid Lock.",
-    "author": "Bass Jansson",
+    "author": "Bass Jansson <tech@bassjansson.com>",
     "license": "MIT",
     "repository": {
         "type": "git",
-        "url": "https://github.com/bassjansson/pyramidlock"
+        "url": "https://github.com/bassjansson/pyramidlock.git"
     },
+    "main": "private/server.js",
     "scripts": {
-        "start": "node private/server.js"
+        "start": "node ."
     },
     "dependencies": {
         "express": "^4.16.3",
