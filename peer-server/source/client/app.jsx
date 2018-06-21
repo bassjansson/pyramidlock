@@ -4,12 +4,17 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
 
+// Import Peer Handler
+import PeerHandler from './peer-handler'
+
 // Main app component
 class App extends React.Component
 {
     constructor(props)
     {
         super(props)
+
+        this.peerHandler = new PeerHandler()
     }
 
     render()

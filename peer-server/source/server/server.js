@@ -17,16 +17,16 @@ const peerServer = ExpressPeerServer(server,
     debug: true
 })
 
-app.use('/app', peerServer)
+app.use('/peer', peerServer)
 
 peerServer.on('connection', id =>
 {
     io.emit('user-connected', id)
-    console.log(`User '${id}' connected.`)
+    console.log(`User '${id}' connected`)
 })
 
 peerServer.on('disconnect', id =>
 {
     io.emit('user-disconnected', id)
-    console.log(`User '${id}' disconnected.`)
+    console.log(`User '${id}' disconnected`)
 })
