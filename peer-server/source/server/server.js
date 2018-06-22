@@ -39,19 +39,20 @@ io.on('connection', socket =>
             console.log(`[${user.id}] User info added with name '${user.info.name}'`)
         }
         else
-        {
-            throw new Error("User has not been added...")
-        }
+            console.error(`[${userInfo.id}][ERROR] Given user id does not match any connected user...`)
     })
 
     socket.emit('reconnect')
 })
+
 
 // User connections with peer server
 peerServer.on('connection', userId =>
 {
     if (users.findIndex(user => user.id === userId) === -1)
         users.push({ id: userId })
+    else
+        console.error(`[${userId}][ERROR] Given user id is already in use by another user...`)
 
     console.log(`[${userId}] User connected to peer server`)
 })
