@@ -1,32 +1,64 @@
 'use strict'
 
-const ExpressPeerServer = require('peer').ExpressPeerServer
+// Create express peer server
 const express = require('express')
 const app = express()
 const port = process.env.PORT || 8080
-
-app.use(express.static('public'))
-
 const server = app.listen(port)
 const io = require('socket.io').listen(server)
+const peerServer = require('peer').ExpressPeerServer(server, { debug: true })
 
-console.log(`Listening on port ${port}.`)
-
-const peerServer = ExpressPeerServer(server,
-{
-    debug: true
-})
-
+app.use(express.static('public'))
 app.use('/peer', peerServer)
 
-peerServer.on('connection', id =>
+console.log(`\nListening on port ${port}\n`)
+
+
+// Users
+let users = []
+
+
+// Client connections with server
+io.on('connection', socket =>
 {
-    io.emit('user-connected', id)
-    console.log(`User '${id}' connected`)
+    // Log client connection and disconnection
+    console.log(`[${socket.id}] Client connected`)
+
+    socket.on('disconnect', reason =>
+        console.log(`[${socket.id}] Client disconnected, reason: ${reason}`))
+
+    // Add user info to connected user
+    socket.on('user-info', userInfo =>
+    {
+        let user = users.find(user => user.id === userInfo.id)
+
+        if (user)
+        {
+            user.info = userInfo.info
+
+            console.log(`[${user.id}] User info added with name '${user.info.name}'`)
+        }
+        else
+        {
+            throw new Error("User has not been added...")
+        }
+    })
+
+    socket.emit('reconnect')
 })
 
-peerServer.on('disconnect', id =>
+// User connections with peer server
+peerServer.on('connection', userId =>
 {
-    io.emit('user-disconnected', id)
-    console.log(`User '${id}' disconnected`)
+    if (users.findIndex(user => user.id === userId) === -1)
+        users.push({ id: userId })
+
+    console.log(`[${userId}] User connected to peer server`)
+})
+
+peerServer.on('disconnect', userId =>
+{
+    users = users.filter(user => user.id !== userId)
+
+    console.log(`[${userId}] User disconnected from peer server`)
 })
