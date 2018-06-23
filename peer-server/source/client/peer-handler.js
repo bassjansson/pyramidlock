@@ -7,21 +7,25 @@ export default class PeerHandler
 {
     constructor(options)
     {
+        // Process options
         options = options || {}
 
         options.host = options.host || location.hostname
         options.port = options.port || 8080
 
-        options.userName = options.userName || "Guest"
-
-        // Create user id
-        this.userId = Math.random().toString(36).substr(2, 8)
+        // Create user info
+        this.userInfo = {
+            id: Math.random().toString(36).substr(2, 8),
+            info: {
+                name: options.userName || "Anonymous"
+            }
+        }
 
         // Create socket to server
         this.socket = io(`${options.host}:${options.port}`)
 
-        // Create peer
-        this.peer = new Peer(this.userId,
+        // Create peer connection
+        this.peer = new Peer(this.userInfo.id,
         {
             host: options.host,
             port: options.port,
@@ -29,26 +33,21 @@ export default class PeerHandler
             debug: true
         })
 
-        // Callbacks
+        // Socket callbacks
         this.socket.on('reconnect', () =>
         {
             if (this.peer.disconnected)
                 this.peer.reconnect()
         })
 
+        // Peer callbacks
         this.peer.on('open', id =>
         {
-            this.userId = id
+            console.log(`Connected to peer server with id '${id}'`)
 
-            console.log(`Connected to peer server with id '${this.userId}'`)
+            this.userInfo.id = id
 
-            this.socket.emit('user-info',
-            {
-                id: this.userId,
-                info: {
-                    name: options.userName
-                }
-            })
+            this.socket.emit('user-info', this.userInfo)
         })
 
         this.peer.on('disconnected', () =>
