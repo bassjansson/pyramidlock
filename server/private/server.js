@@ -40,16 +40,24 @@ io.on('connection', (socket) =>
     {
         console.log('Received lowpass factor: ', factor);
 
-        if (factor >= 0 && factor < 1.0)
+        if (factor >= 0 && factor < 1)
             pole = factor;
     });
 
-    socket.on('db-settings', (settings) =>
+    socket.on('db-smooth', (smooth) =>
     {
-        console.log('Received decibel settings: ', settings);
+        console.log('Received decibel smoothing: ', smooth);
 
-        dBsmooth = settings.smooth;
-        dBrange = settings.range;
+        if (smooth >= 0 && smooth < 1)
+            dBsmooth = smooth;
+    });
+
+    socket.on('db-range', (range) =>
+    {
+        console.log('Received decibel range: ', range);
+
+        if (range >= 0 && range <= 200)
+            dBrange = range;
     });
 });
 
@@ -58,12 +66,14 @@ io.on('connection', (socket) =>
 //========== Arduino Setup ==========//
 //===================================//
 
+/*
 arduino.receiveSensorData((sensorData) =>
 {
     console.log('Sending arduino sensor data: ', sensorData);
 
     io.sockets.emit('sensor-data', sensorData);
 });
+*/
 
 
 //==========================================//
