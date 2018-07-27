@@ -79,8 +79,10 @@
             <div class="sliders-container">
                 <h2>Smoothing</h2>
                 <input id="db-smooth-slider" type="range" min="0" max="9999" value="0" class="slider">
+                <h2>Range</h2>
+                <input id="db-range-slider" type="range" min="0" max="10000" value="2000" class="slider">
                 <h2>Gain</h2>
-                <input id="db-range-slider" type="range" min="0" max="10000" value="5000" class="slider">
+                <input id="db-gain-slider" type="range" min="0" max="10000" value="2000" class="slider">
             </div>
         </div>
 
@@ -106,6 +108,11 @@
             document.getElementById("db-range-slider").oninput = function()
             {
                 socket.emit('db-range', this.value / 10000 * 200);
+            };
+
+            document.getElementById("db-gain-slider").oninput = function()
+            {
+                socket.emit('db-gain', this.value / 10000 * 100);
             };
 
         </script>

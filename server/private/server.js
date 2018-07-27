@@ -59,6 +59,14 @@ io.on('connection', (socket) =>
         if (range >= 0 && range <= 200)
             dBrange = range;
     });
+
+    socket.on('db-gain', (gain) =>
+    {
+        console.log('Received decibel gain: ', gain);
+
+        if (gain >= 0 && gain <= 100)
+            dBgain = gain;
+    });
 });
 
 
@@ -124,13 +132,14 @@ let dBlow = 0;
 let dBhigh = 0;
 
 let dBsmooth = 0;
-let dBrange = 100;
+let dBrange = 40;
+let dBgain = 20;
 
 // RMS range 0 to 1
 // dB range 0 to 255
 function rmsToDb(rms)
 {
-    let db = (Math.log10(rms) * 20 + dBrange) * 255 / dBrange;
+    let db = (Math.log10(rms) * 20 + dBgain + dBrange) / dBrange * 255;
 
     if (db < 0) db = 0;
     if (db > 255) db = 255;
