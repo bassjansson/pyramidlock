@@ -5,41 +5,54 @@
 #include <Adafruit_LSM9DS0.h>
 #include <Adafruit_NeoPixel.h>
 #ifdef __AVR__
-    #include <avr/power.h>
+# include <avr/power.h>
 #endif
 
 
 // Data defines
-#define DATA_DELIMITER  ','
-#define DATA_ENDLINE    '\n'
-#define DATA_SIZE        4 // [Control, Red, Green, Blue]
+#define DATA_DELIMITER ','
+#define DATA_ENDLINE   '\n'
+#define DATA_SIZE      4 // [Control, Red, Green, Blue]
 
 // Control defines
-#define CONTROL_COLOR_WIPE  200
-#define CONTROL_PUSH_FRONT  201
-#define CONTROL_RAINBOW     202
+#define CONTROL_MIC_RMS    100
+#define CONTROL_COLOR_WIPE 200
+#define CONTROL_PUSH_FRONT 201
+#define CONTROL_RAINBOW    202
 
 // Pixel defines
-#define PIXELS_COUNT       172 // 86
-#define PIXELS_DATA_PIN    6
-#define PIXELS_DIMINISH    2 // Inverted brightness
-#define PIXELS_TYPE_FLAGS  (NEO_GRB + NEO_KHZ800)
+#define PIXELS_COUNT      172 // 86
+#define PIXELS_DATA_PIN   6
+#define PIXELS_DIMINISH   2 // Inverted brightness
+#define PIXELS_TYPE_FLAGS (NEO_GRB + NEO_KHZ800)
+
+#define PIXEL_SIZE        3
+
+#define R_OFFSET          1
+#define G_OFFSET          0
+#define B_OFFSET          2
 
 
 // Data variables
 int dataValues[DATA_SIZE];
-int dataIndex = 0;
+int dataIndex     = 0;
 String dataString = "";
 
 // Pixel variables
 Adafruit_NeoPixel neoPixels = Adafruit_NeoPixel(PIXELS_COUNT, PIXELS_DATA_PIN, PIXELS_TYPE_FLAGS);
 
+// RMS variables
+byte RMSlow        = 0;
+byte RMShigh       = 0;
+byte targetRMSlow  = 0;
+byte targetRMShigh = 0;
+
 // Rainbow variables
 float phaseFreq = 0.023;
-float hueFreq = 0.003;
+float hueFreq   = 0.003;
 
 // Assign a unique base ID for this sensor
-Adafruit_LSM9DS0 lsm = Adafruit_LSM9DS0(1000);  // Use I2C, ID #1000
+Adafruit_LSM9DS0 lsm = Adafruit_LSM9DS0(1000); // Use I2C, ID #1000
 
 // Sensor events
 sensors_event_t accel, mag, gyro, temp;
@@ -48,9 +61,9 @@ sensors_event_t accel, mag, gyro, temp;
 unsigned long previousMillis = 0;
 
 // Gyro
-float gyroX = 0.0;
-float gyroY = 0.0;
-float gyroZ = 0.0;
+float gyroX  = 0.0;
+float gyroY  = 0.0;
+float gyroZ  = 0.0;
 float filter = 0.6;
 
 // Orientation
@@ -93,33 +106,41 @@ void loop()
     readSensor();
 
     // Control LED strip
-    uint8_t rr = cos(XX / 360.0 * 4.0 * PI) * -127.0 + 127.0;
-    uint8_t gg = cos(YY / 360.0 * 4.0 * PI) * -127.0 + 127.0;
-    uint8_t bb = cos(ZZ / 360.0 * 4.0 * PI) * -127.0 + 127.0;
+    // uint8_t rr = cos(XX / 360.0 * 4.0 * PI) * -127.0 + 127.0;
+    // uint8_t gg = cos(YY / 360.0 * 4.0 * PI) * -127.0 + 127.0;
+    // uint8_t bb = cos(ZZ / 360.0 * 4.0 * PI) * -127.0 + 127.0;
+    //
+    // switch (control)
+    // {
+    //     case CONTROL_MIC_RMS:
+    //         colorWipe(0, RMSlow, RMShigh);
+    //         break;
+    //
+    //     case CONTROL_COLOR_WIPE:
+    //         colorWipe(rr, gg, bb);
+    //         break;
+    //
+    //     case CONTROL_PUSH_FRONT:
+    //         pushFront(rr, gg, bb);
+    //         break;
+    //
+    //     case CONTROL_RAINBOW:
+    //         rainbow();
+    //         break;
+    //
+    //     default:
+    //         colorWipe(0, 0, 0);
+    //         break;
+    // }
 
-    switch (control)
-    {
-        case CONTROL_COLOR_WIPE:
-            colorWipe(rr, gg, bb);
-            break;
+    RMSlow  = RMSlow * 0.6 + targetRMSlow * 0.4;
+    RMShigh = RMShigh * 0.6 + targetRMShigh * 0.4;
 
-        case CONTROL_PUSH_FRONT:
-            pushFront(rr, gg, bb);
-            break;
-
-        case CONTROL_RAINBOW:
-            rainbow();
-            break;
-
-        default:
-            colorWipe(0, 0, 0);
-            break;
-    }
+    rmsWipe(RMSlow, RMShigh, ZZ / 360.0 * 255);
 
     // Delay a little bit for stability
-    delay(50);
-}
-
+    delay(30);
+} // loop
 
 // Set entire strip to one color
 void colorWipe(uint8_t r, uint8_t g, uint8_t b)
@@ -131,6 +152,43 @@ void colorWipe(uint8_t r, uint8_t g, uint8_t b)
 
     neoPixels.show();
 }
+
+// RMS wipe
+void rmsWipe(uint8_t low, uint8_t high, uint8_t hueOffset)
+{
+    uint8_t d = PIXELS_DIMINISH;
+
+    low  /= 12;
+    high /= 12;
+
+    uint8_t * pixp = neoPixels.getPixels();
+    uint8_t * newp;
+
+    for (uint16_t i = 0; i < neoPixels.numPixels(); ++i)
+    {
+        uint16_t side = i % 43;
+        bool dir      = side < 21;
+        uint8_t pos   = dir ? side : 42 - side;
+        uint8_t level = dir ? low : high;
+        bool isOn     = dir ? pos <= low : pos <= high;
+
+        if (isOn)
+        {
+            uint8_t extraOffset = (i % 86 < 43) ? 0 : 85;
+            neoPixels.setPixelColor(i, hueToColor(pos * 4 + hueOffset + extraOffset));
+        }
+        else
+        {
+            newp = pixp + i * PIXEL_SIZE;
+
+            newp[R_OFFSET] /= 2;
+            newp[G_OFFSET] /= 2;
+            newp[B_OFFSET] /= 2;
+        }
+    }
+
+    neoPixels.show();
+} // rmsWipe
 
 // Push a color to the front of the strip
 void pushFront(uint8_t r, uint8_t g, uint8_t b)
@@ -170,13 +228,13 @@ void rainbow()
     if (phaseFreq < 0.0 || hueFreq < 0.0)
         return;
 
-    float seconds = millis() / 1000.0;
-    float phase = fmod(seconds * phaseFreq, 1.0);
+    float seconds     = millis() / 1000.0;
+    float phase       = fmod(seconds * phaseFreq, 1.0);
     uint8_t centerHue = uint8_t(seconds * hueFreq * 256.0) % 256;
 
     for (uint16_t i = 0; i < neoPixels.numPixels(); ++i)
     {
-        uint8_t pos = sin(((float)i / neoPixels.numPixels() + phase) * 2.0 * PI) * 32.0;
+        uint8_t pos = sin(((float) i / neoPixels.numPixels() + phase) * 2.0 * PI) * 32.0;
         uint8_t hue = (pos + centerHue) % 256;
         neoPixels.setPixelColor(i, hueToColor(hue));
     }
@@ -184,36 +242,36 @@ void rainbow()
     neoPixels.show();
 }
 
-
 // Initialize sensor
 void initializeSensor()
 {
     // Begin the sensor
-    if(!lsm.begin())
+    if (!lsm.begin())
     {
-        //Serial.print(F("Ooops, no LSM9DS0 detected ... Check your wiring or I2C ADDR!"));
-        while (1);
+        // Serial.print(F("Ooops, no LSM9DS0 detected ... Check your wiring or I2C ADDR!"));
+        while (1)
+            ;
     }
 
-    //Serial.println(F("Yeeaah, found LSM9DS0 9DOF Sensor!"));
+    // Serial.println(F("Yeeaah, found LSM9DS0 9DOF Sensor!"));
 
     // 1.) Set the accelerometer range
     lsm.setupAccel(lsm.LSM9DS0_ACCELRANGE_2G);
-    //lsm.setupAccel(lsm.LSM9DS0_ACCELRANGE_4G);
-    //lsm.setupAccel(lsm.LSM9DS0_ACCELRANGE_6G);
-    //lsm.setupAccel(lsm.LSM9DS0_ACCELRANGE_8G);
-    //lsm.setupAccel(lsm.LSM9DS0_ACCELRANGE_16G);
+    // lsm.setupAccel(lsm.LSM9DS0_ACCELRANGE_4G);
+    // lsm.setupAccel(lsm.LSM9DS0_ACCELRANGE_6G);
+    // lsm.setupAccel(lsm.LSM9DS0_ACCELRANGE_8G);
+    // lsm.setupAccel(lsm.LSM9DS0_ACCELRANGE_16G);
 
     // 2.) Set the magnetometer sensitivity
     lsm.setupMag(lsm.LSM9DS0_MAGGAIN_2GAUSS);
-    //lsm.setupMag(lsm.LSM9DS0_MAGGAIN_4GAUSS);
-    //lsm.setupMag(lsm.LSM9DS0_MAGGAIN_8GAUSS);
-    //lsm.setupMag(lsm.LSM9DS0_MAGGAIN_12GAUSS);
+    // lsm.setupMag(lsm.LSM9DS0_MAGGAIN_4GAUSS);
+    // lsm.setupMag(lsm.LSM9DS0_MAGGAIN_8GAUSS);
+    // lsm.setupMag(lsm.LSM9DS0_MAGGAIN_12GAUSS);
 
     // 3.) Setup the gyroscope
     lsm.setupGyro(lsm.LSM9DS0_GYROSCALE_245DPS);
-    //lsm.setupGyro(lsm.LSM9DS0_GYROSCALE_500DPS);
-    //lsm.setupGyro(lsm.LSM9DS0_GYROSCALE_2000DPS);
+    // lsm.setupGyro(lsm.LSM9DS0_GYROSCALE_500DPS);
+    // lsm.setupGyro(lsm.LSM9DS0_GYROSCALE_2000DPS);
 }
 
 // Read sensor
@@ -237,7 +295,6 @@ void readSensor()
     ZZ = fmod(ZZ + 360.0 + (gyroZ + 5.8) * diffSeconds, 360.0);
 }
 
-
 // Send data
 void sendData(int data[], int size)
 {
@@ -253,10 +310,15 @@ void sendData(int data[], int size)
 void onDataReceived(int data[DATA_SIZE])
 {
     phaseFreq = hueFreq = -1.0;
-    control = data[0];
+    control   = data[0];
 
     switch (data[0])
     {
+        case CONTROL_MIC_RMS:
+            targetRMSlow  = data[1];
+            targetRMShigh = data[2];
+            break;
+
         case CONTROL_COLOR_WIPE:
             break;
 
@@ -265,15 +327,15 @@ void onDataReceived(int data[DATA_SIZE])
 
         case CONTROL_RAINBOW:
             phaseFreq = data[1] / 1000.0;
-            hueFreq = data[2] / 1000.0;
+            hueFreq   = data[2] / 1000.0;
             break;
 
         default: break;
     }
 
     // TODO: For testing
-    //delay(20);
-    //sendData(data, DATA_SIZE);
+    // delay(20);
+    // sendData(data, DATA_SIZE);
 }
 
 // Read serial data
@@ -312,4 +374,4 @@ void readSerialData()
                 dataString += c;
         }
     }
-}
+} // readSerialData
