@@ -110,16 +110,22 @@ stream(url).pipe(decoder).pipe(speaker);
 //========== Microphone Input ==========//
 //======================================//
 
+const SAMPLE_RATE = 44100;
+const BUFFER_SIZE = 1024;
+const BIT_DEPTH = 16;
+const SIGNED_INT = true;
+const CHANNELS = 1;
+const MAX_VALUE = 32768; // 16 bit signed integer max
+
 const Mic = require('mic');
-const MAX_VALUE = 32768;
 
 const mic = Mic({
-    rate: 44100,
-    bitwidth: 16,
-    channels: 1,
-    encoding: 'signed-integer',
-    device: 'hw:1,0', // USB soundcard mic
-    bufferSize: 1024 // custom option
+    rate: SAMPLE_RATE,
+    bufferSize: BUFFER_SIZE, // custom option
+    bitwidth: BIT_DEPTH,
+    encoding: SIGNED_INT ? 'signed-integer' : 'unsigned-integer',
+    channels: CHANNELS,
+    device: 'hw:1,0' // USB soundcard mic
 });
 
 let micInputStream = mic.getAudioStream();
@@ -127,8 +133,21 @@ let micInputStream = mic.getAudioStream();
 let pole = 0.95;
 let lowpass = 0;
 
-let low = 0;
-let high = 0;
+let dBlow = 0;
+let dBhigh = 0;
+let dBsmooth = 0.6;
+
+// RMS range 0 to 1
+// dB range 0 to 255
+function rmsToDb(rms)
+{
+    let db = (Math.log10(rms) * 20 + 85) * 3;
+
+    if (db < 0) db = 0;
+    if (db > 255) db = 255;
+
+    return db;
+}
 
 micInputStream.on('data', data =>
 {
@@ -156,16 +175,13 @@ micInputStream.on('data', data =>
         {
             value = item;
         }
-    })
+    });
 
-    RMSlow = Math.sqrt(Math.sqrt(RMSlow / data.length * 2) * 20.0) * 255;
-    RMShigh = Math.sqrt(Math.sqrt(RMShigh / data.length * 2) * 20.0) * 255;
+    RMSlow = Math.sqrt(RMSlow / data.length * 2);
+    RMShigh = Math.sqrt(RMShigh / data.length * 2);
 
-    if (RMSlow > 255) RMSlow = 255;
-    if (RMShigh > 255) RMShigh = 255;
-
-    low = low * 0.6 + RMSlow * 0.4;
-    high = high * 0.6 + RMShigh * 0.4;
+    dBlow = dBlow * dBsmooth + rmsToDb(RMSlow) * (1 - dBsmooth);
+    dBhigh = dBhigh * dBsmooth + rmsToDb(RMShigh) * (1 - dBsmooth);
 });
 
 mic.start();
@@ -173,8 +189,8 @@ mic.start();
 setTimeout(function () {
     setInterval(function () {
         arduino.sendControlData({
-            control: 100,
-            data: [low, high]
+            control: 100, // RMS control value
+            data: [Math.floor(dBlow), Math.floor(dBhigh)]
         });
     }, 60);
 }, 2000);
@@ -187,12 +203,12 @@ setTimeout(function () {
 const Speaker = require('speaker');
 
 const speaker = new Speaker({
-    sampleRate: 44100,
-    bitDepth: 16,
-    channels: 1,
-    signed: true,
-    device: 'hw:0,0', // onboard speaker jack
-    samplesPerFrame: 1024
+    sampleRate: SAMPLE_RATE,
+    samplesPerFrame: BUFFER_SIZE,
+    bitDepth: BIT_DEPTH,
+    signed: SIGNED_INT,
+    channels: CHANNELS,
+    device: 'hw:0,0' // onboard speaker jack
 });
 
 micInputStream.pipe(speaker);
