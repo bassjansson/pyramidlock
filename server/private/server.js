@@ -18,18 +18,6 @@ const Arduino = require('./arduino.js');
 const arduino = new Arduino('/dev/ttyACM0');
 
 
-//=========================//
-//========== HSL ==========//
-//=========================//
-
-const hslToRgb = require('../public/hsl.js');
-
-var controlData = {
-    control: 202, // Rainbow
-    data: [-1.0, -1.0]
-};
-
-
 //==================================//
 //========== Server Setup ==========//
 //==================================//
@@ -48,31 +36,20 @@ io.on('connection', (socket) =>
 {
     console.log('A client connected!');
 
-    socket.on('phase-freq', (phaseFreq) =>
+    socket.on('lp-factor', (factor) =>
     {
-        console.log('Received phase frequency: ', phaseFreq);
+        console.log('Received lowpass factor: ', factor);
 
-        controlData.data[0] = phaseFreq;
-
-        arduino.sendControlData(controlData);
+        if (factor >= 0 && factor < 1.0)
+            pole = factor;
     });
 
-    socket.on('hue-freq', (hueFreq) =>
+    socket.on('db-settings', (settings) =>
     {
-        console.log('Received hue frequency: ', hueFreq);
+        console.log('Received decibel settings: ', settings);
 
-        controlData.data[1] = hueFreq;
-
-        arduino.sendControlData(controlData);
-    });
-
-    socket.on('led-control', (control) =>
-    {
-        console.log('Received LED control: ', control);
-
-        controlData.control = control;
-
-        arduino.sendControlData(controlData);
+        dBsmooth = settings.smooth;
+        dBrange = settings.range;
     });
 });
 
@@ -135,13 +112,15 @@ let lowpass = 0;
 
 let dBlow = 0;
 let dBhigh = 0;
-let dBsmooth = 0.6;
+
+let dBsmooth = 0;
+let dBrange = 100;
 
 // RMS range 0 to 1
 // dB range 0 to 255
 function rmsToDb(rms)
 {
-    let db = (Math.log10(rms) * 20 + 85) * 3;
+    let db = (Math.log10(rms) * 20 + dBrange) * 255 / dBrange;
 
     if (db < 0) db = 0;
     if (db > 255) db = 255;
@@ -192,7 +171,7 @@ setTimeout(function () {
             control: 100, // RMS control value
             data: [Math.floor(dBlow), Math.floor(dBhigh)]
         });
-    }, 60);
+    }, 40);
 }, 2000);
 
 
