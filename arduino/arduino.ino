@@ -46,6 +46,9 @@ byte RMSlow        = 0;
 byte RMShigh       = 0;
 byte targetRMSlow  = 0;
 byte targetRMShigh = 0;
+float RMSsmooth    = 0.5;
+int deltaRMSlow    = 0;
+int deltaRMShigh   = 0;
 
 // Rainbow variables
 float phaseFreq = 0.023;
@@ -133,8 +136,11 @@ void loop()
     //         break;
     // }
 
-    RMSlow  = RMSlow * 0.6 + targetRMSlow * 0.4;
-    RMShigh = RMShigh * 0.6 + targetRMShigh * 0.4;
+    deltaRMSlow  = (int) targetRMSlow - RMSlow;
+    deltaRMShigh = (int) targetRMShigh - RMShigh;
+
+    RMSlow  = RMSlow * RMSsmooth + targetRMSlow * (1 - RMSsmooth);
+    RMShigh = RMShigh * RMSsmooth + targetRMShigh * (1 - RMSsmooth);
 
     rmsWipe(RMSlow, RMShigh, ZZ / 360.0 * 255);
 
@@ -164,6 +170,8 @@ void rmsWipe(uint8_t low, uint8_t high, uint8_t hueOffset)
     uint8_t * pixp = neoPixels.getPixels();
     uint8_t * newp;
 
+    float decay = 0.66;
+
     for (uint16_t i = 0; i < neoPixels.numPixels(); ++i)
     {
         uint16_t side = i % 43;
@@ -171,7 +179,13 @@ void rmsWipe(uint8_t low, uint8_t high, uint8_t hueOffset)
         uint8_t pos   = dir ? side : 42 - side;
         uint8_t level = dir ? low : high;
         bool isOn     = dir ? pos <= low : pos <= high;
+        bool isFlash  = (dir ? deltaRMSlow : deltaRMShigh) > 120;
 
+        if (isFlash)
+        {
+            neoPixels.setPixelColor(i, 255 / d, 255 / d, 255 / d);
+        }
+        else
         if (isOn)
         {
             uint8_t extraOffset = (i % 86 < 43) ? 0 : 85;
@@ -181,9 +195,9 @@ void rmsWipe(uint8_t low, uint8_t high, uint8_t hueOffset)
         {
             newp = pixp + i * PIXEL_SIZE;
 
-            newp[R_OFFSET] /= 2;
-            newp[G_OFFSET] /= 2;
-            newp[B_OFFSET] /= 2;
+            newp[R_OFFSET] *= decay;
+            newp[G_OFFSET] *= decay;
+            newp[B_OFFSET] *= decay;
         }
     }
 
