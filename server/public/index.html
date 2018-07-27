@@ -8,39 +8,107 @@
         <!-- Title -->
         <title>Pyramid Lock</title>
 
-        <!-- Style Sheets -->
-        <link rel="stylesheet" href="index.css">
+        <!-- Style -->
+        <style>
+            html {
+                text-align: center;
+                color: #999;
+                background-color: #172938;
+            }
+
+            body {
+                margin-top: 10%;
+            }
+
+            h1 {
+                color: #ccc;
+            }
+
+            .sliders-container {
+                width: 80%;
+                margin: auto;
+            }
+
+            .slider {
+                -webkit-appearance: none;
+                width: 100%;
+                height: 30px;
+                border-radius: 15px;
+                background: #d3d3d3;
+                outline: none;
+                opacity: 0.7;
+                -webkit-transition: .2s;
+                transition: opacity .2s;
+            }
+
+            .slider:hover {
+                opacity: 1;
+            }
+
+            .slider::-webkit-slider-thumb {
+                -webkit-appearance: none;
+                appearance: none;
+                width: 50px;
+                height: 50px;
+                border-radius: 50%;
+                background: #4C4C4C;
+                cursor: pointer;
+            }
+
+            .slider::-moz-range-thumb {
+                width: 50px;
+                height: 50px;
+                border-radius: 50%;
+                background: #4C4C4C;
+                cursor: pointer;
+            }
+
+        </style>
     </head>
 
     <body>
         <!-- Content -->
         <div>
-            <h1>LED Control</h1>
-            <form>
-                <input id="color-wipe" type="radio" name="control" onclick="onControlChange(200);"> Color Wipe<br>
-                <input id="push-front" type="radio" name="control" onclick="onControlChange(201);"> Push Front<br>
-                <input id="rainbow" type="radio" name="control" onclick="onControlChange(202);" checked> Rainbow
-            </form>
-
-            <h1>Rainbow Control</h1>
-            <div id="sliders-container">
-                <h2>Phase Frequency</h2>
-                <input id="phase-freq-slider" type="range" min="0" max="1000" value="500" class="slider">
-                <h2>Hue Shift Frequency</h2>
-                <input id="hue-freq-slider" type="range" min="0" max="1000" value="500" class="slider">
+            <h1>Lowpass Filter</h1>
+            <div class="sliders-container">
+                <h2>Pole Factor</h2>
+                <input id="lp-factor-slider" type="range" min="5000" max="9999" value="9500" class="slider">
             </div>
-        </div>
 
-        <div hidden>
-            <h2>Sensor Data<h2>
-            <ul id="sensor-data-list"><ul>
+            <h1>Decibel Settings</h1>
+            <div class="sliders-container">
+                <h2>Smoothing</h2>
+                <input id="db-smooth-slider" type="range" min="0" max="9999" value="0" class="slider">
+                <h2>Gain</h2>
+                <input id="db-range-slider" type="range" min="0" max="10000" value="5000" class="slider">
+            </div>
         </div>
 
         <!-- Libraries -->
         <script src="/socket.io/socket.io.js"></script>
 
         <!-- Scripts -->
-        <script src="hsl.js"></script>
-        <script src="index.js"></script>
+        <script>
+            // Initialize socket.io
+            const socket = io();
+
+            // Slider handling
+            document.getElementById("lp-factor-slider").oninput = function()
+            {
+                socket.emit('lp-factor', this.value / 10000);
+            };
+
+            document.getElementById("db-smooth-slider").oninput = function()
+            {
+                socket.emit('db-smooth', this.value / 10000);
+            };
+
+            document.getElementById("db-range-slider").oninput = function()
+            {
+                socket.emit('db-range', this.value / 10000 * 200);
+            };
+
+        </script>
     </body>
+
 </html>
